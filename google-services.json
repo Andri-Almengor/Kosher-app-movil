@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "671711132969",
+    "project_id": "notificaciones-kosher",
+    "storage_bucket": "notificaciones-kosher.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:671711132969:android:914ee4b3ba1a6326d04b38",
+        "android_client_info": {
+          "package_name": "com.andrialmengor.koshercostarica"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCIFT3E9_f-aZW_Go_2PvgO-bdo92neOzY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

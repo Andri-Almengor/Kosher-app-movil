@@ -1,0 +1,28 @@
+export type Producto = {
+  id: number;
+  catGeneral: string;
+  catGeneralEn?: string | null;
+  categoria1: string;
+  categoria1En?: string | null;
+  fabricanteMarca: string;
+  fabricanteMarcaEn?: string | null;
+  nombre: string;
+  nombreEn?: string | null;
+  certifica?: string | null;
+  certificaEn?: string | null;
+  sello?: string | null;
+  selloEn?: string | null;
+  atributo1?: string | null;
+  atributo1En?: string | null;
+  atributo2?: string | null;
+  atributo2En?: string | null;
+  atributo3?: string | null;
+  atributo3En?: string | null;
+  tienda?: string | null;
+  tiendaEn?: string | null;
+  fotoProducto?: string | null;
+  fotoSello1?: string | null;
+  fotoSello2?: string | null;
+  creadoEn?: string | null;
+  actualizadoEn?: string | null;
+};

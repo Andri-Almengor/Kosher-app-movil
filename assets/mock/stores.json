@@ -1,0 +1,9 @@
+[
+  {
+    "id": "default-store",
+    "name": "Tienda principal",
+    "address": "San José, Costa Rica",
+    "lat": 9.935,
+    "lng": -84.077
+  }
+]
