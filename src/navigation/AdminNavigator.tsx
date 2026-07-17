@@ -7,6 +7,7 @@ import AdminUsersScreen from "../features/admin/screens/AdminUsersScreen";
 import AdminNewsScreen from "../features/admin/screens/AdminNewsScreen";
 import AdminLogsScreen from "../features/admin/screens/AdminLogsScreen";
 import AdminRestaurantsScreen from "@/features/admin/screens/AdminRestaurantsScreen";
+import AdminSealsScreen from "@/features/admin/screens/AdminSealsScreen";
 
 export type AdminStackParamList = {
   AdminHome: { resetKey?: number } | undefined;
@@ -15,6 +16,7 @@ export type AdminStackParamList = {
   AdminNews: undefined;
   AdminLogs: undefined;
   AdminRestaurants: undefined;
+  AdminSeals: undefined;
 };
 
 const Stack = createNativeStackNavigator<AdminStackParamList>();
@@ -35,6 +37,7 @@ export function AdminNavigator() {
       <Stack.Screen name="AdminUsers" component={AdminUsersScreen} options={{ title: t("users") }} />
       <Stack.Screen name="AdminNews" component={AdminNewsScreen} options={{ title: t("news") }} />
       <Stack.Screen name="AdminRestaurants" component={AdminRestaurantsScreen} options={{ title: t("restaurantsTitle") }} />
+      <Stack.Screen name="AdminSeals" component={AdminSealsScreen} options={{ title: "Sellos" }} />
       <Stack.Screen name="AdminLogs" component={AdminLogsScreen} options={{ title: t("logs") }} />
     </Stack.Navigator>
   );
