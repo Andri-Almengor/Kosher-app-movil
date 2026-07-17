@@ -36,14 +36,18 @@ export type AdminProduct = {
 };
 
 export type ProductSealOption = {
-  id?: string;
+  id?: string | number;
   nombreEs?: string | null;
   nombreEn?: string | null;
   valueEs?: string | null;
   valueEn?: string | null;
-  imageUrl: string;
+  imageUrl?: string | null;
+  activo?: boolean;
+  eliminado?: boolean;
+  usageCount?: number;
+  creadoEn?: string | null;
+  actualizadoEn?: string | null;
 };
-
 
 async function refreshPublicCacheAfterAdminWrite() {
   try {
@@ -53,14 +57,38 @@ async function refreshPublicCacheAfterAdminWrite() {
   }
 }
 
-
-export async function listAdminProductSeals() {
-  const { data } = await api.get<ProductSealOption[]>("/admin/productos/sellos");
+export async function listAdminProductSeals(options: { includeInactive?: boolean } = {}) {
+  const { data } = await api.get<ProductSealOption[]>("/admin/productos/sellos", {
+    params: options.includeInactive ? { includeInactive: "true" } : undefined,
+  });
   return data;
 }
 
-export async function createAdminProductSeal(payload: { nombreEs?: string | null; nombreEn?: string | null; imageUrl: string }) {
+export async function createAdminProductSeal(payload: {
+  nombreEs?: string | null;
+  nombreEn?: string | null;
+  imageUrl?: string | null;
+  activo?: boolean;
+}) {
   const { data } = await api.post<ProductSealOption>("/admin/productos/sellos", payload);
+  return data;
+}
+
+export async function updateAdminProductSeal(
+  id: string | number,
+  payload: { nombreEs?: string | null; nombreEn?: string | null; imageUrl?: string | null; activo?: boolean }
+) {
+  return putWithPatchFallback<ProductSealOption>(`/admin/productos/sellos/${id}`, payload);
+}
+
+export async function deleteAdminProductSeal(id: string | number) {
+  const { data } = await api.delete(`/admin/productos/sellos/${id}`);
+  await refreshPublicCacheAfterAdminWrite();
+  return data;
+}
+
+export async function syncExistingProductSeals() {
+  const { data } = await api.post<{ ok: boolean; imported: number; total: number }>("/admin/productos/sellos/sync-existing");
   return data;
 }
 
@@ -128,4 +156,3 @@ export async function importProductsExcel(input: ImportExcelInput) {
 
   return data;
 }
-

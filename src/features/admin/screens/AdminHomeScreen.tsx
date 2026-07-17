@@ -9,7 +9,7 @@ import type { AdminStackParamList } from "@/navigation/AdminNavigator";
 import { useAuth } from "@/app/auth/authStore";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useI18n } from "@/i18n/I18nProvider";
-import { listAdminProducts } from "@/features/admin/api/adminProductsApi";
+import { listAdminProductSeals, listAdminProducts } from "@/features/admin/api/adminProductsApi";
 import { listRestaurants } from "@/features/admin/api/adminRestaurantsApi";
 import { listNews } from "@/features/admin/api/adminNewsApi";
 import { listAdminUsers } from "@/features/admin/api/adminUsersApi";
@@ -64,13 +64,15 @@ export default function AdminHomeScreen() {
   const restaurantsQ = useQuery({ queryKey: ["admin-restaurants"], queryFn: listRestaurants, enabled: hydrated && isAdmin && !!token, ...queryConfig });
   const newsQ = useQuery({ queryKey: ["admin-news"], queryFn: listNews, enabled: hydrated && isAdmin && !!token, ...queryConfig });
   const usersQ = useQuery({ queryKey: ["admin-users"], queryFn: listAdminUsers, enabled: hydrated && isAdmin && !!token, ...queryConfig });
+  const sealsQ = useQuery({ queryKey: ["admin-product-seals"], queryFn: () => listAdminProductSeals({ includeInactive: true }), enabled: hydrated && isAdmin && !!token, ...queryConfig });
 
-  const refreshing = productsQ.isFetching || restaurantsQ.isFetching || newsQ.isFetching || usersQ.isFetching;
+  const refreshing = productsQ.isFetching || restaurantsQ.isFetching || newsQ.isFetching || usersQ.isFetching || sealsQ.isFetching;
   const counts = {
     products: productsQ.data?.length ?? 0,
     restaurants: restaurantsQ.data?.length ?? 0,
     users: usersQ.data?.length ?? 0,
     news: newsQ.data?.length ?? 0,
+    seals: sealsQ.data?.length ?? 0,
   };
 
   const go = (screen: keyof AdminStackParamList) => () => navigation.navigate(screen as never);
@@ -80,6 +82,7 @@ export default function AdminHomeScreen() {
     void qc.invalidateQueries({ queryKey: ["admin-restaurants"] });
     void qc.invalidateQueries({ queryKey: ["admin-users"] });
     void qc.invalidateQueries({ queryKey: ["admin-news"] });
+    void qc.invalidateQueries({ queryKey: ["admin-product-seals"] });
   };
 
   const kpis = useMemo<KpiItem[]>(() => [
@@ -87,13 +90,15 @@ export default function AdminHomeScreen() {
     { key: "AdminRestaurants", title: "Comercios", value: counts.restaurants, helper: "Negocios registrados", icon: "storefront-outline", iconBg: "#fff1e8", iconColor: "#f97316" },
     { key: "AdminUsers", title: "Usuarios", value: counts.users, helper: "Admin y colaboradores", icon: "people-outline", iconBg: "#f3e8ff", iconColor: "#9333ea" },
     { key: "AdminNews", title: "Novedades", value: counts.news, helper: "Publicaciones activas", icon: "calendar-outline", iconBg: "#eaf2ff", iconColor: "#2563eb" },
-  ], [counts.products, counts.restaurants, counts.users, counts.news]);
+    { key: "AdminSeals", title: "Sellos", value: counts.seals, helper: "Certificaciones visuales", icon: "ribbon-outline", iconBg: "#ecfdf5", iconColor: "#059669" },
+  ], [counts.products, counts.restaurants, counts.users, counts.news, counts.seals]);
 
   const quickActions = useMemo<QuickAction[]>(() => [
     { label: "Producto", icon: "add-circle-outline", target: "AdminProducts" },
     { label: "Comercio", icon: "business-outline", target: "AdminRestaurants" },
     { label: "Usuario", icon: "person-add-outline", target: "AdminUsers" },
     { label: "Novedad", icon: "document-text-outline", target: "AdminNews" },
+    { label: "Sello", icon: "ribbon-outline", target: "AdminSeals" },
     { label: "Importar", icon: "swap-vertical-outline", target: "AdminProducts" },
   ], []);
 
@@ -102,7 +107,8 @@ export default function AdminHomeScreen() {
     { key: "AdminRestaurants", title: "Comercios", description: "Ubicación, contacto, categorías y relación con productos.", meta: `${counts.restaurants} comercios`, icon: "storefront-outline", iconBg: "#fff1e8", iconColor: "#f97316" },
     { key: "AdminUsers", title: "Usuarios y permisos", description: "Roles, accesos, estado de cuenta y colaboradores.", meta: `${counts.users} usuarios`, icon: "people-outline", iconBg: "#f3e8ff", iconColor: "#9333ea" },
     { key: "AdminNews", title: "Novedades", description: "Publicaciones, anuncios, imágenes y contenido editorial.", meta: `${counts.news} novedades`, icon: "newspaper-outline", iconBg: "#eaf2ff", iconColor: "#2563eb" },
-  ], [counts.products, counts.restaurants, counts.users, counts.news]);
+    { key: "AdminSeals", title: "Sellos de certificación", description: "Nombres, imágenes de Cloudinary, estado y relación con productos.", meta: `${counts.seals} sellos`, icon: "ribbon-outline", iconBg: "#ecfdf5", iconColor: "#059669" },
+  ], [counts.products, counts.restaurants, counts.users, counts.news, counts.seals]);
 
   const filteredModules = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -154,13 +160,12 @@ export default function AdminHomeScreen() {
           <TextInput
             value={search}
             onChangeText={setSearch}
-            placeholder="Buscar productos, comercios, usuarios o novedades"
+            placeholder="Buscar productos, comercios, usuarios, novedades o sellos"
             placeholderTextColor="#64748b"
             style={styles.searchInput}
           />
           {!!search && <Pressable onPress={() => setSearch("")} hitSlop={8}><Ionicons name="close-circle" size={18} color="#64748b" /></Pressable>}
         </View>
-
 
         <View style={[styles.kpiGrid, !twoColumns && styles.singleGrid]}>
           {kpis.map((item) => <KpiCard key={item.key} item={item} onPress={go(item.key)} />)}
@@ -175,7 +180,6 @@ export default function AdminHomeScreen() {
         <View style={styles.moduleList}>
           {filteredModules.map((item) => <ModuleCard key={item.key} item={item} onPress={go(item.key)} />)}
         </View>
-
 
         <Pressable style={styles.backHome} onPress={() => navigation.getParent()?.dispatch(CommonActions.navigate({ name: "Tabs", params: { screen: "Inicio" } }))}>
           <Ionicons name="home-outline" size={18} color="#3662a7" />
@@ -219,7 +223,6 @@ function ModuleCard({ item, onPress }: { item: ModuleItem; onPress: () => void }
     </Pressable>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8fafc" },
