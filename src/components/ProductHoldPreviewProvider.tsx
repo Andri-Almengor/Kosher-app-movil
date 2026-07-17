@@ -1,18 +1,20 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
+import { FullWindowOverlay } from "react-native-screens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CachedImage } from "@/components/CachedImage";
 import { AppFonts } from "@/theme/fonts";
 
 type PreviewPayload = {
+  ownerId: string;
   uri: string;
   title?: string | null;
 };
 
 type ProductHoldPreviewContextValue = {
   showProductPreview: (payload: PreviewPayload) => void;
-  hideProductPreview: () => void;
+  hideProductPreview: (ownerId?: string) => void;
 };
 
 const ProductHoldPreviewContext = createContext<ProductHoldPreviewContextValue | null>(null);
@@ -22,46 +24,59 @@ export function ProductHoldPreviewProvider({ children }: React.PropsWithChildren
   const [preview, setPreview] = useState<PreviewPayload | null>(null);
 
   const showProductPreview = useCallback((payload: PreviewPayload) => {
+    const ownerId = String(payload?.ownerId ?? "").trim();
     const uri = String(payload?.uri ?? "").trim();
-    if (!uri) return;
-    setPreview({ uri, title: payload.title ?? null });
+    if (!ownerId || !uri) return;
+
+    setPreview({ ownerId, uri, title: payload.title ?? null });
   }, []);
 
-  const hideProductPreview = useCallback(() => setPreview(null), []);
+  const hideProductPreview = useCallback((ownerId?: string) => {
+    setPreview((current) => {
+      if (!current) return null;
+      if (ownerId && current.ownerId !== ownerId) return current;
+      return null;
+    });
+  }, []);
 
   const value = useMemo(
     () => ({ showProductPreview, hideProductPreview }),
     [showProductPreview, hideProductPreview]
   );
 
+  const overlay = preview ? (
+    <View
+      pointerEvents="none"
+      accessibilityLiveRegion="polite"
+      style={[
+        styles.overlay,
+        {
+          paddingTop: Math.max(insets.top, 18) + 18,
+          paddingBottom: Math.max(insets.bottom, 18) + 18,
+        },
+      ]}
+    >
+      <View style={styles.previewCard}>
+        <CachedImage uri={preview.uri} style={styles.image} resizeMode="contain" />
+        {!!preview.title && (
+          <Text numberOfLines={2} style={styles.title}>
+            {preview.title}
+          </Text>
+        )}
+        <Text style={styles.helper}>Suelta la tarjeta para cerrar</Text>
+      </View>
+    </View>
+  ) : null;
+
   return (
     <ProductHoldPreviewContext.Provider value={value}>
       <View style={styles.root}>
         {children}
-
-        {preview ? (
-          <View
-            pointerEvents="none"
-            accessibilityLiveRegion="polite"
-            style={[
-              styles.overlay,
-              {
-                paddingTop: Math.max(insets.top, 18) + 18,
-                paddingBottom: Math.max(insets.bottom, 18) + 18,
-              },
-            ]}
-          >
-            <View style={styles.previewCard}>
-              <CachedImage uri={preview.uri} style={styles.image} resizeMode="contain" />
-              {!!preview.title && (
-                <Text numberOfLines={2} style={styles.title}>
-                  {preview.title}
-                </Text>
-              )}
-              <Text style={styles.helper}>Suelta la tarjeta para cerrar</Text>
-            </View>
-          </View>
-        ) : null}
+        {preview && Platform.OS === "ios" ? (
+          <FullWindowOverlay>{overlay}</FullWindowOverlay>
+        ) : (
+          overlay
+        )}
       </View>
     </ProductHoldPreviewContext.Provider>
   );
@@ -73,7 +88,7 @@ export function useProductHoldPreview() {
   if (!context) {
     return {
       showProductPreview: (_payload: PreviewPayload) => {},
-      hideProductPreview: () => {},
+      hideProductPreview: (_ownerId?: string) => {},
     };
   }
 
@@ -84,8 +99,8 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: 9999,
-    elevation: 9999,
+    zIndex: 2147483647,
+    elevation: 2147483647,
     backgroundColor: "rgba(0,0,0,0.94)",
     alignItems: "center",
     justifyContent: "center",
