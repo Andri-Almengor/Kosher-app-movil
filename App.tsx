@@ -9,7 +9,6 @@ import { I18nProvider } from "./src/i18n/I18nProvider";
 import { StartupSync } from "./src/lib/offline/StartupSync";
 import { ConnectivitySync } from "./src/lib/offline/ConnectivitySync";
 import { PushNotificationsBootstrap } from "./src/lib/notifications/PushNotificationsBootstrap";
-import { ProductHoldPreviewProvider } from "./src/components/ProductHoldPreviewProvider";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,13 +34,11 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <I18nProvider>
             <ThemeProvider>
-              <ProductHoldPreviewProvider>
-                <OfflineSync />
-                <StartupSync />
-                <ConnectivitySync />
-                <PushNotificationsBootstrap />
-                <RootNavigator />
-              </ProductHoldPreviewProvider>
+              <OfflineSync />
+              <StartupSync />
+              <ConnectivitySync />
+              <PushNotificationsBootstrap />
+              <RootNavigator />
             </ThemeProvider>
           </I18nProvider>
         </QueryClientProvider>

@@ -36,6 +36,9 @@ type Props = {
   onPress?: () => void;
 };
 
+const HOLD_DELAY_MS = 280;
+const PRESS_SUPPRESSION_MS = 260;
+
 function getAtributoBadgeColor(value?: string | null) {
   const normalized = String(value || "").trim().toLowerCase();
 
@@ -52,13 +55,19 @@ export const ProductCard = memo(function ProductCard({ item, onPress }: Props) {
   const { width } = useWindowDimensions();
   const { showProductPreview, hideProductPreview } = useProductHoldPreview();
   const compact = width < 380;
-  const longPressTriggered = useRef(false);
-  const resetLongPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const previewOwnerId = useRef(
+    `product-card:${String(item.id)}:${Math.random().toString(36).slice(2)}`
+  );
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resetPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previewTriggered = useRef(false);
 
   useEffect(() => {
     return () => {
-      if (resetLongPressTimer.current) clearTimeout(resetLongPressTimer.current);
-      hideProductPreview();
+      if (holdTimer.current) clearTimeout(holdTimer.current);
+      if (resetPressTimer.current) clearTimeout(resetPressTimer.current);
+      hideProductPreview(previewOwnerId.current);
     };
   }, [hideProductPreview]);
 
@@ -82,39 +91,57 @@ export const ProductCard = memo(function ProductCard({ item, onPress }: Props) {
     (localized.fabricanteMarca?.trim() || localized.fabricanteMarcaEn?.trim() || "").trim();
 
   const atributo1Color = getAtributoBadgeColor(chips[0]);
-  const productImage = String(item.fotoProducto ?? "").trim();
+  const productImage = String(localized.fotoProducto ?? item.fotoProducto ?? "").trim();
 
-  const handleLongPress = () => {
+  const clearHoldTimer = () => {
+    if (!holdTimer.current) return;
+    clearTimeout(holdTimer.current);
+    holdTimer.current = null;
+  };
+
+  const handlePressIn = () => {
+    clearHoldTimer();
+    if (resetPressTimer.current) {
+      clearTimeout(resetPressTimer.current);
+      resetPressTimer.current = null;
+    }
+
+    previewTriggered.current = false;
     if (!productImage) return;
 
-    longPressTriggered.current = true;
-    showProductPreview({
-      uri: productImage,
-      title: localized.nombre || item.nombre,
-    });
+    holdTimer.current = setTimeout(() => {
+      holdTimer.current = null;
+      previewTriggered.current = true;
+      showProductPreview({
+        ownerId: previewOwnerId.current,
+        uri: productImage,
+        title: localized.nombre || item.nombre,
+      });
+    }, HOLD_DELAY_MS);
   };
 
   const handlePressOut = () => {
-    hideProductPreview();
+    clearHoldTimer();
+    hideProductPreview(previewOwnerId.current);
 
-    if (resetLongPressTimer.current) clearTimeout(resetLongPressTimer.current);
-    resetLongPressTimer.current = setTimeout(() => {
-      longPressTriggered.current = false;
-      resetLongPressTimer.current = null;
-    }, 220);
+    if (resetPressTimer.current) clearTimeout(resetPressTimer.current);
+    resetPressTimer.current = setTimeout(() => {
+      previewTriggered.current = false;
+      resetPressTimer.current = null;
+    }, PRESS_SUPPRESSION_MS);
   };
 
   const handlePress = () => {
-    if (longPressTriggered.current) return;
+    if (previewTriggered.current) return;
     onPress?.();
   };
 
   return (
     <Pressable
       onPress={handlePress}
-      onLongPress={productImage ? handleLongPress : undefined}
+      onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      delayLongPress={320}
+      pressRetentionOffset={{ top: 40, bottom: 40, left: 40, right: 40 }}
       accessibilityRole="button"
       accessibilityHint={
         productImage
