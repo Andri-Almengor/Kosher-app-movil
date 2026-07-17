@@ -4,9 +4,20 @@ import { AppState, type AppStateStatus } from "react-native";
 import { offlineDownloadManager } from "./DownloadManager";
 import { getOfflineImagesEnabled, warmProductImages } from "@/features/products/offlinePrefs";
 import { registerBackgroundSyncTaskAsync } from "./backgroundSyncTask";
+import {
+  enterBackgroundDownloadMode,
+  exitBackgroundDownloadMode,
+  installBackgroundDownloadDefaults,
+} from "./downloadLifecycle";
 
 export function OfflineSync() {
   React.useEffect(() => {
+    installBackgroundDownloadDefaults();
+
+    if (AppState.currentState === "background" || AppState.currentState === "inactive") {
+      enterBackgroundDownloadMode();
+    }
+
     void offlineDownloadManager.init();
     void registerBackgroundSyncTaskAsync();
 
@@ -17,27 +28,34 @@ export function OfflineSync() {
 
     const appSub = AppState.addEventListener("change", (nextState: AppStateStatus) => {
       if (nextState === "active") {
+        exitBackgroundDownloadMode();
         void offlineDownloadManager.resumePaused();
         void offlineDownloadManager.init();
         void registerBackgroundSyncTaskAsync();
-        void getOfflineImagesEnabled().then((enabled) => {
-          if (enabled) void warmProductImages();
-        }).catch(() => {});
+        void getOfflineImagesEnabled()
+          .then((enabled) => {
+            if (enabled) void warmProductImages();
+          })
+          .catch(() => {});
         return;
       }
 
       if (nextState === "background" || nextState === "inactive") {
-        // No pausamos nada al minimizar. Al contrario: dejamos preparada la cola y
-        // arrancamos/continuamos la descarga para que avance mientras la app quede abierta
-        // en segundo plano. Si el usuario cierra la app por completo, Android/iOS la detienen
-        // y se reanuda en la próxima apertura.
-        void getOfflineImagesEnabled().then((enabled) => {
-          if (enabled) void warmProductImages();
-        }).catch(() => {});
+        // Los callbacks de progreso pueden quedar suspendidos al minimizar.
+        // Desactivamos solamente el detector de descargas atascadas para evitar
+        // que pause una transferencia nativa que continúa en segundo plano.
+        enterBackgroundDownloadMode();
+
+        void getOfflineImagesEnabled()
+          .then((enabled) => {
+            if (enabled) void warmProductImages();
+          })
+          .catch(() => {});
       }
     });
 
     return () => {
+      exitBackgroundDownloadMode();
       netUnsub();
       appSub.remove();
     };

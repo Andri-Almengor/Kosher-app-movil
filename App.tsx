@@ -4,11 +4,12 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { OfflineSync } from "./src/lib/offline/OfflineSync";
 import RootNavigator from "./src/navigation/RootNavigator";
-import {ThemeProvider} from "./src/theme/ThemeProvider";
+import { ThemeProvider } from "./src/theme/ThemeProvider";
 import { I18nProvider } from "./src/i18n/I18nProvider";
 import { StartupSync } from "./src/lib/offline/StartupSync";
 import { ConnectivitySync } from "./src/lib/offline/ConnectivitySync";
 import { PushNotificationsBootstrap } from "./src/lib/notifications/PushNotificationsBootstrap";
+import { ProductHoldPreviewProvider } from "./src/components/ProductHoldPreviewProvider";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,11 +35,13 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <I18nProvider>
             <ThemeProvider>
-              <OfflineSync />
-              <StartupSync />
-              <ConnectivitySync />
-              <PushNotificationsBootstrap />
-              <RootNavigator />
+              <ProductHoldPreviewProvider>
+                <OfflineSync />
+                <StartupSync />
+                <ConnectivitySync />
+                <PushNotificationsBootstrap />
+                <RootNavigator />
+              </ProductHoldPreviewProvider>
             </ThemeProvider>
           </I18nProvider>
         </QueryClientProvider>

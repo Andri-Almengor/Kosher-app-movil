@@ -1,9 +1,10 @@
-import React, { memo, useMemo } from "react";
+import React, { memo, useEffect, useMemo, useRef } from "react";
 import { View, Text, StyleSheet, Pressable, useWindowDimensions } from "react-native";
 import { useTheme } from "@/theme/ThemeProvider";
 import { useI18n } from "@/i18n/I18nProvider";
 import { AppFonts } from "@/theme/fonts";
 import { CachedImage } from "@/components/CachedImage";
+import { useProductHoldPreview } from "@/components/ProductHoldPreviewProvider";
 import { localizeProduct } from "@/features/products/utils/localizeProduct";
 
 export type ProductCardItem = {
@@ -49,7 +50,17 @@ export const ProductCard = memo(function ProductCard({ item, onPress }: Props) {
   const { colors } = useTheme();
   const { t, lang } = useI18n();
   const { width } = useWindowDimensions();
+  const { showProductPreview, hideProductPreview } = useProductHoldPreview();
   const compact = width < 380;
+  const longPressTriggered = useRef(false);
+  const resetLongPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (resetLongPressTimer.current) clearTimeout(resetLongPressTimer.current);
+      hideProductPreview();
+    };
+  }, [hideProductPreview]);
 
   const localized = useMemo(() => {
     if ((item as any)?.__localizedLang === lang) return item as any;
@@ -71,10 +82,47 @@ export const ProductCard = memo(function ProductCard({ item, onPress }: Props) {
     (localized.fabricanteMarca?.trim() || localized.fabricanteMarcaEn?.trim() || "").trim();
 
   const atributo1Color = getAtributoBadgeColor(chips[0]);
+  const productImage = String(item.fotoProducto ?? "").trim();
+
+  const handleLongPress = () => {
+    if (!productImage) return;
+
+    longPressTriggered.current = true;
+    showProductPreview({
+      uri: productImage,
+      title: localized.nombre || item.nombre,
+    });
+  };
+
+  const handlePressOut = () => {
+    hideProductPreview();
+
+    if (resetLongPressTimer.current) clearTimeout(resetLongPressTimer.current);
+    resetLongPressTimer.current = setTimeout(() => {
+      longPressTriggered.current = false;
+      resetLongPressTimer.current = null;
+    }, 220);
+  };
+
+  const handlePress = () => {
+    if (longPressTriggered.current) return;
+    onPress?.();
+  };
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
+      onLongPress={productImage ? handleLongPress : undefined}
+      onPressOut={handlePressOut}
+      delayLongPress={320}
+      accessibilityRole="button"
+      accessibilityHint={
+        productImage
+          ? lang === "en"
+            ? "Hold to preview the full product image"
+            : "Mantén presionado para ver la imagen completa del producto"
+          : undefined
+      }
       style={({ pressed }) => [
         styles.card,
         {
@@ -85,8 +133,8 @@ export const ProductCard = memo(function ProductCard({ item, onPress }: Props) {
       ]}
     >
       <View style={styles.imageWrap}>
-        {item.fotoProducto ? (
-          <CachedImage uri={item.fotoProducto} style={styles.image} resizeMode="cover" />
+        {productImage ? (
+          <CachedImage uri={productImage} style={styles.image} resizeMode="cover" />
         ) : (
           <View style={[styles.image, styles.emptyImage, { backgroundColor: colors.muted }]}> 
             <Text style={[styles.emptyImageText, { color: colors.text, opacity: 0.78 }]}> 
